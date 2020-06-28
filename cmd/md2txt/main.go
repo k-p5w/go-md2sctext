@@ -7,16 +7,16 @@ import (
 )
 
 func main() {
-	targetdir := flag.String("d", "dir", "対象フォルダを指定")
-	tag := flag.String("tag", "tag", "一律に設定したい文字列を記載")
+	// パラメータの分解
+	targetdir := flag.String("d", "", "読み込みフォルダを指定。このフォルダ内のmdファイルを読み込みます")
+	tag := flag.String("t", "", "フォルダ内のファイルに一律で設定したいキーワードを入力。e.g.映画")
 
 	flag.Parse()
 	log.Printf("args= %q %q\n", *targetdir, *tag)
 	// フォルダから.mdを読み込む
-	targetdir2 := "C:/home/scrapbox/input"
-	tags := "#映画 "
-	jsondata := ReadDir(targetdir2, tags)
+	jsondata := ReadDir(*targetdir, *tag)
 	fmt.Println(jsondata)
 
+	// ファイルの書き出し
 	Writedata(jsondata)
 }

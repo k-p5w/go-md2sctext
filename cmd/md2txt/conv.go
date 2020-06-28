@@ -10,7 +10,10 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"time"
 )
+
+const filetimestampformat = "20060102_150405"
 
 // ImportFile is インポートするためのファイル
 type ImportFile struct {
@@ -77,25 +80,42 @@ func Edittext(txt []string, tags string) PageItem {
 	var pi PageItem
 	v := url.Values{}
 	//検索条件
-	reg := `^# (.*)`
-	r := regexp.MustCompile(reg)
+
+	getMdFmt := func(regstr string, s string) []string {
+		r := regexp.MustCompile(regstr)
+		ret := r.FindStringSubmatch(s)
+
+		return ret
+	}
 	// for ii := 0; ii < len(txt); ii++ {
 	for _, val := range txt {
-		ret := r.FindStringSubmatch(val)
-		// 0行目で先頭が#だけであればタイトルにする
+
+		// タイトルが未設定であれば、ファイルの先頭をタイトルにする
 		if len(pi.Title) == 0 {
+			reg := `^# (.*)`
+			ret := getMdFmt(reg, val)
 			pi.Title = ret[1]
 			pi.Lins = append(pi.Lins, ret[1])
 		} else {
+			reg := `^#+(.*)`
+			ret := getMdFmt(reg, val)
 
-			pi.Lins = append(pi.Lins, val)
+			if len(ret) == 0 {
+				pi.Lins = append(pi.Lins, val)
+			} else {
+				//見出しは一律でL1にする
+				fmtval := fmt.Sprintf("[* %v ]", ret[1])
+				pi.Lins = append(pi.Lins, fmtval)
+			}
+
 		}
 		// fmt.Printf("行:%v 内容:%v\n", idx, val)
 		jointxt += val + "\n"
 
 	}
 
-	pi.Lins = append(pi.Lins, tags)
+	keyword := fmt.Sprintf("#%v ", tags)
+	pi.Lins = append(pi.Lins, keyword)
 
 	v.Set("body", jointxt)
 	ret := v.Encode()
@@ -112,10 +132,20 @@ func Writedata(item ImportFile) {
 		panic(err)
 	}
 
+	// 旧ファイルをリネームする
+	t := time.Now()
+	srcfile := "input.json"
+
+	newname := fmt.Sprintf("%v.%v", srcfile, t.Format(filetimestampformat))
+	err = os.Rename(srcfile, newname)
+	if err != nil {
+		panic(err)
+	}
+
 	//書き込みファイル作成
 	file, err := os.OpenFile("./input.json", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
-		log.Println(err)
+		panic(err)
 	}
 	defer file.Close()
 
